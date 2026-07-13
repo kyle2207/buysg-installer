@@ -156,11 +156,13 @@ if (($userPath -split ';') -notcontains $Bin) {
 $env:Path += ";$Bin"
 
 # --- 6. first-run guidance + doctor --------------------------------------------
+# config.ini is auto-generated on first run (public data mode, no secrets needed).
+# The only manual step: put your broker certificates under app\certificates\.
 Write-Host ""
-if (-not (Test-Path (Join-Path $App 'config\config.ini'))) {
-    Write-Host "[ONE MORE STEP] Copy these two from your old machine:" -ForegroundColor Yellow
-    Write-Host "    1. config\config.ini   -> $App\config\"
-    Write-Host "    2. certificates\ (all) -> $App\certificates\"
+if (-not (Test-Path (Join-Path $App 'certificates\esun')) -and
+    -not (Test-Path (Join-Path $App 'certificates\fubon'))) {
+    Write-Host "[ONE MORE STEP] Put your broker certificates here:" -ForegroundColor Yellow
+    Write-Host "    $App\certificates\<esun|fubon>\<name>\  (SDK config.ini + cert files)"
     Write-Host ""
 }
 Step "Running health check (stock-gift doctor)"
