@@ -1,7 +1,7 @@
 # =============================================================================
-# stock-gift bootstrap installer (Windows) - compiled-lib edition
+# buysg bootstrap installer (Windows) - compiled-lib edition
 #
-#   irm https://raw.githubusercontent.com/kyle2207/stock-gift-installer/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 | iex
 #
 # What it does (no Git, no GitHub account, no manual downloads):
 #   1. Ensure Python 3.12 (auto-install via winget if missing)
@@ -9,22 +9,22 @@
 #   3. Download broker SDK wheels from the brokers' OFFICIAL sites
 #      (E.SUN esun_trade/esun_marketdata 2.2.0, Fubon fubon_neo 2.0.1)
 #   4. Create venv, pip install everything (deps come from PyPI)
-#   5. Create the stock-gift command (user PATH); user data lives in
-#      %LOCALAPPDATA%\stock-gift\home (config auto-generated; put certificates there)
-#   6. Run "stock-gift doctor"
+#   5. Create the buysg command (user PATH); user data lives in
+#      %LOCALAPPDATA%\buysg\home (config auto-generated; put certificates there)
+#   6. Run "buysg doctor"
 #
-# Commands: stock-gift / stock-gift doctor / stock-gift update / stock-gift uninstall
+# Commands: buysg / buysg doctor / buysg update / buysg uninstall
 # NOTE: keep this file pure ASCII (works with irm|iex and PS 5.1 without BOM).
 # =============================================================================
 
 $ErrorActionPreference = 'Stop'
 
-$Root   = Join-Path $env:LOCALAPPDATA 'stock-gift'
+$Root   = Join-Path $env:LOCALAPPDATA 'buysg'
 $Home2  = Join-Path $Root 'home'
 $Venv   = Join-Path $Root 'venv'
 $Bin    = Join-Path $Root 'bin'
 $Wheels = Join-Path $Root 'wheels'
-$RepoApi = 'https://api.github.com/repos/kyle2207/stock-gift-installer'
+$RepoApi = 'https://api.github.com/repos/kyle2207/buysg-installer'
 
 # Broker SDK official download sources (exact known-good versions)
 $SdkUrls = @(
@@ -39,29 +39,46 @@ $SdkUrls = @(
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Fail($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
 
+# --- 0. migrate from the old "stock-gift" install (renamed to buysg) -----------
+$OldRoot = Join-Path $env:LOCALAPPDATA 'stock-gift'
+if (Test-Path $OldRoot) {
+    Step "Old stock-gift install detected - migrating to buysg"
+    New-Item -ItemType Directory -Force -Path $Root | Out-Null
+    foreach ($item in @('home', 'wheels')) {
+        $src = Join-Path $OldRoot $item
+        $dst = Join-Path $Root $item
+        if ((Test-Path $src) -and -not (Test-Path $dst)) {
+            Move-Item $src $dst
+            Write-Host "    moved $item"
+        }
+    }
+    # very old clone layout: app\config + app\certificates -> home\
+    $OldApp = Join-Path $OldRoot 'app'
+    if (Test-Path $OldApp) {
+        New-Item -ItemType Directory -Force -Path $Home2 | Out-Null
+        foreach ($item in @('config', 'certificates')) {
+            $src = Join-Path $OldApp $item
+            $dst = Join-Path $Home2 $item
+            if ((Test-Path $src) -and -not (Test-Path $dst)) { Move-Item $src $dst }
+        }
+    }
+    # drop the old bin from user PATH, remove old root entirely
+    $ob = Join-Path $OldRoot 'bin'
+    $up = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $np = (($up -split ';') | Where-Object { $_ -and $_ -ne $ob }) -join ';'
+    if ($np -ne $up) { [Environment]::SetEnvironmentVariable('Path', $np, 'User') }
+    Remove-Item -Recurse -Force $OldRoot
+    # old core wheels are named stock_gift-*; drop them so only buysg-* remains
+    Get-ChildItem (Join-Path $Wheels 'stock_gift-*.whl') -ErrorAction SilentlyContinue | Remove-Item -Force
+    Write-Host "    old install removed (user data kept in home\)"
+}
+
 Step "Install location: $Root  (user data: home\)"
 New-Item -ItemType Directory -Force -Path $Root, $Bin, $Wheels, $Home2 | Out-Null
 
 function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
                 [Environment]::GetEnvironmentVariable('Path','User')
-}
-
-# --- 0. migrate from old clone-based layout ------------------------------------
-$OldApp = Join-Path $Root 'app'
-if (Test-Path $OldApp) {
-    Step "Old layout detected - migrating config/certificates to home\"
-    foreach ($item in @('config','certificates')) {
-        $src = Join-Path $OldApp $item
-        $dst = Join-Path $Home2 $item
-        if ((Test-Path $src) -and -not (Test-Path $dst)) {
-            Move-Item $src $dst
-            Write-Host "    moved $item -> home\$item"
-        }
-    }
-    Remove-Item -Recurse -Force $OldApp
-    if (Test-Path $Venv) { Remove-Item -Recurse -Force $Venv }  # old editable venv is stale
-    Write-Host "    old app/venv removed (clean rebuild)"
 }
 
 # --- 1. Python 3.12 (wheel is cp312) --------------------------------------------
@@ -86,9 +103,9 @@ Write-Host "    Python: $(Invoke-Expression "$py --version")"
 
 # --- 2. core wheel from latest GitHub Release -----------------------------------
 Step "Fetching latest release info"
-$rel = Invoke-RestMethod "$RepoApi/releases/latest" -Headers @{ 'User-Agent' = 'stock-gift-installer' }
-$asset = $rel.assets | Where-Object { $_.name -like 'stock_gift-*.whl' } | Select-Object -First 1
-if (-not $asset) { Fail "no stock_gift wheel asset in latest release ($($rel.tag_name))" }
+$rel = Invoke-RestMethod "$RepoApi/releases/latest" -Headers @{ 'User-Agent' = 'buysg-installer' }
+$asset = $rel.assets | Where-Object { $_.name -like 'buysg-*.whl' } | Select-Object -First 1
+if (-not $asset) { Fail "no buysg wheel asset in latest release ($($rel.tag_name))" }
 $CoreWhl = Join-Path $Wheels $asset.name
 if (-not (Test-Path $CoreWhl)) {
     Step "Downloading core: $($asset.name) ($([math]::Round($asset.size/1kb)) KB)"
@@ -111,7 +128,9 @@ foreach ($sdk in $SdkUrls) {
         Expand-Archive -Path $dst -DestinationPath $Wheels -Force
     }
 }
-$SdkWhls = Get-ChildItem (Join-Path $Wheels '*.whl') | Where-Object { $_.Name -notlike 'stock_gift-*' }
+# identify broker wheels explicitly (avoid picking up stale core wheels)
+$SdkWhls = Get-ChildItem (Join-Path $Wheels '*.whl') |
+    Where-Object { $_.Name -like 'esun_*' -or $_.Name -like 'fubon_*' }
 if ($SdkWhls.Count -lt 3) { Fail "expected 3 broker SDK wheels, found $($SdkWhls.Count)" }
 
 # --- 4. venv + install ------------------------------------------------------------
@@ -124,28 +143,28 @@ Step "Installing core + broker SDKs (deps auto-resolved from PyPI)"
 & $VenvPy -m pip install --upgrade pip --quiet
 foreach ($w in $SdkWhls) { & $VenvPy -m pip install $w.FullName --quiet }
 & $VenvPy -m pip install $CoreWhl --force-reinstall --upgrade --quiet
-if (-not (Test-Path (Join-Path $Venv 'Scripts\stock-gift.exe'))) {
-    Fail "stock-gift entry point was not created - pip install failed, see errors above."
+if (-not (Test-Path (Join-Path $Venv 'Scripts\buysg.exe'))) {
+    Fail "buysg entry point was not created - pip install failed, see errors above."
 }
 
 # --- 5. command shim + PATH --------------------------------------------------------
-Step "Creating the stock-gift command"
+Step "Creating the buysg command"
 $shim = @'
 @echo off
 setlocal
-set "ROOT=%LOCALAPPDATA%\stock-gift"
-set "STOCK_GIFT_HOME=%ROOT%\home"
+set "ROOT=%LOCALAPPDATA%\buysg"
+set "BUYSG_HOME=%ROOT%\home"
 if /I "%~1"=="update" goto :update
 if /I "%~1"=="uninstall" goto :uninstall
-pushd "%STOCK_GIFT_HOME%"
-"%ROOT%\venv\Scripts\stock-gift.exe" %*
+pushd "%BUYSG_HOME%"
+"%ROOT%\venv\Scripts\buysg.exe" %*
 set EC=%ERRORLEVEL%
 popd
 exit /b %EC%
 
 :update
 echo Re-running installer to fetch the latest release...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/kyle2207/stock-gift-installer/main/install.ps1 | iex"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 | iex"
 exit /b %ERRORLEVEL%
 
 :uninstall
@@ -156,12 +175,12 @@ if /I not "%CONFIRM%"=="y" (
   echo Cancelled.
   exit /b 0
 )
-powershell -NoProfile -Command "$b=Join-Path $env:LOCALAPPDATA 'stock-gift\bin'; $p=[Environment]::GetEnvironmentVariable('Path','User'); $n=(($p -split ';') | Where-Object { $_ -and $_ -ne $b }) -join ';'; [Environment]::SetEnvironmentVariable('Path',$n,'User')"
+powershell -NoProfile -Command "$b=Join-Path $env:LOCALAPPDATA 'buysg\bin'; $p=[Environment]::GetEnvironmentVariable('Path','User'); $n=(($p -split ';') | Where-Object { $_ -and $_ -ne $b }) -join ';'; [Environment]::SetEnvironmentVariable('Path',$n,'User')"
 start "" /min cmd /c "timeout /t 2 >nul & rmdir /s /q "%ROOT%""
-echo Removed. stock-gift will be gone in new terminals.
+echo Removed. buysg will be gone in new terminals.
 exit /b 0
 '@
-[IO.File]::WriteAllText((Join-Path $Bin 'stock-gift.cmd'), $shim,
+[IO.File]::WriteAllText((Join-Path $Bin 'buysg.cmd'), $shim,
     (New-Object System.Text.UTF8Encoding($false)))
 
 $userPath = [Environment]::GetEnvironmentVariable('Path','User')
@@ -172,6 +191,8 @@ if (($userPath -split ';') -notcontains $Bin) {
 $env:Path += ";$Bin"
 
 # --- 6. first-run guidance + doctor -------------------------------------------------
+# config.ini is auto-generated on first run (public data mode, no secrets needed).
+# The only manual step: put your broker certificates under home\certificates\.
 Write-Host ""
 if (-not (Test-Path (Join-Path $Home2 'certificates\esun')) -and
     -not (Test-Path (Join-Path $Home2 'certificates\fubon'))) {
@@ -179,12 +200,12 @@ if (-not (Test-Path (Join-Path $Home2 'certificates\esun')) -and
     Write-Host "    $Home2\certificates\<esun|fubon>\<name>\  (SDK config.ini + cert files)"
     Write-Host ""
 }
-Step "Running health check (stock-gift doctor)"
-& (Join-Path $Bin 'stock-gift.cmd') doctor
+Step "Running health check (buysg doctor)"
+& (Join-Path $Bin 'buysg.cmd') doctor
 
 Write-Host ""
 Write-Host "Install finished. Commands:" -ForegroundColor Green
-Write-Host "    stock-gift            # interactive menu"
-Write-Host "    stock-gift doctor     # health check"
-Write-Host "    stock-gift update     # update to latest release"
-Write-Host "    stock-gift uninstall  # remove everything"
+Write-Host "    buysg            # interactive menu"
+Write-Host "    buysg doctor     # health check"
+Write-Host "    buysg update     # update to latest release"
+Write-Host "    buysg uninstall  # remove everything"
