@@ -25,9 +25,9 @@ irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 
 
 > 安裝當下的視窗可直接使用 `buysg`；其他已開啟的視窗需重開才會認得指令。
 
-## 安裝後的唯一手動步驟：放入你的券商憑證
+## 安裝後的唯一手動步驟：放入你本人的券商憑證
 
-把你自己的券商憑證資料夾放到：
+把你**本人**的券商憑證資料夾放到：
 
 ```
 %LOCALAPPDATA%\buysg\home\certificates\
@@ -37,7 +37,7 @@ irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 
         └── 憑證檔（.p12 / .pfx）
 ```
 
-範例（玉山一個帳戶 + 富邦一個帳戶）：
+範例（同一人的玉山 + 富邦帳戶）：
 
 ```
 %LOCALAPPDATA%\buysg\home\certificates\
@@ -51,9 +51,17 @@ irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 
         └── xxxxxxxx.pfx
 ```
 
-- 憑證與 SDK 設定檔請向你的券商申請（玉山程式交易 API / 富邦新一代 API）
+- 憑證與 SDK 設定檔請以**本人名義**向你的券商申請（玉山程式交易 API / 富邦新一代 API）
 - 放好後執行 `buysg doctor`，會逐項告訴你還缺什麼
 - 帳戶資料夾會**自動掃描**，執行時在選單勾選要用哪些帳戶
+- ⚠️ 請以**本人帳戶與憑證**使用 buysg。若有代理他人下單的需求，依證券商規定須先臨櫃辦理
+  「委託代理買賣授權」；未經合法授權使用他人帳戶，可能涉及法律責任
+
+## 隱私與帳密安全
+
+券商帳密與憑證**只存在你的電腦**、只用於呼叫券商**官方 SDK** 登入，
+驗證後自動以 Windows DPAPI 加密，**不會上傳到任何地方**。
+完整聲明見 [PRIVACY.md](PRIVACY.md)。
 
 ## 設定檔（config.ini）
 
