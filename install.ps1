@@ -26,15 +26,30 @@ $Bin    = Join-Path $Root 'bin'
 $Wheels = Join-Path $Root 'wheels'
 $RepoApi = 'https://api.github.com/repos/kyle2207/buysg-installer'
 
-# Broker SDK official download sources (exact known-good versions)
-$SdkUrls = @(
-    @{ Name = 'esun_trade-2.2.0-cp37-abi3-win_amd64.whl';
-       Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_trade-2.2.0-cp37-abi3-win_amd64.whl' },
-    @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl';
-       Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl' },
-    @{ Name = 'fubon_neo-2.0.1-cp37-abi3-win_amd64.zip';  # zip contains the whl
-       Url  = 'https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.0.1-cp37-abi3-win_amd64.zip' }
-)
+# Broker SDK official download sources, keyed by wheel platform tag (consumed in
+# section 3). This is the Windows installer, so $Platform is fixed to win_amd64:
+# the brokers ship x64-only wheels, and ARM Windows runs them under emulation.
+# The catalog is keyed by platform purely to leave a clean seam -- a future
+# install.sh (or an OS branch here) adds mac/linux keys without touching the
+# download loop. Non-Windows keys are intentionally omitted until their exact
+# official URLs are pinned: E.SUN publishes all four platforms on its SDK download
+# page; Fubon 2.0.1 is win-only and would need a version bump (>=2.2.x) for mac/linux.
+$Platform = 'win_amd64'
+
+$SdkCatalog = @{
+    'win_amd64' = @(
+        @{ Name = 'esun_trade-2.2.0-cp37-abi3-win_amd64.whl';
+           Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_trade-2.2.0-cp37-abi3-win_amd64.whl' },
+        @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl';
+           Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl' },
+        @{ Name = 'fubon_neo-2.0.1-cp37-abi3-win_amd64.zip';  # zip contains the whl
+           Url  = 'https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.0.1-cp37-abi3-win_amd64.zip' }
+    )
+    # Future platform keys (pin exact official URLs before enabling; see notes above):
+    # 'manylinux_2_17_x86_64' = @( <esun_trade/esun_marketdata linux whls> + <fubon >=2.2.x> )
+    # 'macosx_11_0_arm64'     = @( <esun mac-arm whls> + <fubon mac-arm> )
+    # 'macosx_10_12_x86_64'   = @( <esun mac-intel whls> + <fubon mac-intel> )
+}
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 function Fail($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
@@ -116,6 +131,8 @@ if (-not (Test-Path $CoreWhl)) {
 
 # --- 3. broker SDKs from official sites ------------------------------------------
 Step "Downloading broker SDKs from official sites (cached if present)"
+$SdkUrls = $SdkCatalog[$Platform]
+if (-not $SdkUrls) { Fail "no broker SDK sources defined for platform '$Platform'" }
 foreach ($sdk in $SdkUrls) {
     $dst = Join-Path $Wheels $sdk.Name
     if (-not (Test-Path $dst)) {
@@ -131,7 +148,9 @@ foreach ($sdk in $SdkUrls) {
 # identify broker wheels explicitly (avoid picking up stale core wheels)
 $SdkWhls = Get-ChildItem (Join-Path $Wheels '*.whl') |
     Where-Object { $_.Name -like 'esun_*' -or $_.Name -like 'fubon_*' }
-if ($SdkWhls.Count -lt 3) { Fail "expected 3 broker SDK wheels, found $($SdkWhls.Count)" }
+# each catalog entry yields exactly one whl (a .zip unpacks to a single whl)
+$ExpectedWhls = @($SdkUrls).Count
+if ($SdkWhls.Count -lt $ExpectedWhls) { Fail "expected $ExpectedWhls broker SDK wheels, found $($SdkWhls.Count)" }
 
 # --- 4. venv + install ------------------------------------------------------------
 $VenvPy = Join-Path $Venv 'Scripts\python.exe'
