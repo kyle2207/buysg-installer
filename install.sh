@@ -14,7 +14,7 @@
 #      ${XDG_DATA_HOME:-~/.local/share}/buysg/home (config auto-generated)
 #   7. Run "buysg doctor"
 #
-# Commands: buysg / buysg doctor / buysg update / buysg uninstall
+# Commands: buysg / login / preview / balance / cancel / accounts / doctor / update / uninstall / help
 # NOTE: keep install.ps1 and install.sh in sync (same versions / URLs / flow).
 # =============================================================================
 set -euo pipefail
@@ -265,10 +265,16 @@ main() {
 
     echo
     printf '\033[32mInstall finished. Commands:\033[0m\n'
-    info "buysg            # interactive menu"
+    info "buysg            # interactive order menu"
+    info "buysg login      # sign in / register (Google or Facebook)"
+    info "buysg preview    # view current gift list (no broker login)"
+    info "buysg balance    # account balance + upcoming settlements"
+    info "buysg cancel     # cancel pending orders (pick by stock code)"
+    info "buysg accounts   # set default accounts"
     info "buysg doctor     # health check"
     info "buysg update     # update to latest release"
     info "buysg uninstall  # remove everything"
+    info "buysg help       # full command list"
     echo
     info "Privacy: broker credentials stay on THIS machine only, are used solely to"
     info "log in via the brokers' OFFICIAL SDKs, and are never uploaded. Details:"
