@@ -7,7 +7,7 @@
 #   1. Ensure Python 3.12 (auto-install via winget if missing)
 #   2. Download the compiled core wheel from this repo's latest GitHub Release
 #   3. Download broker SDK wheels from the brokers' OFFICIAL sites
-#      (E.SUN esun_trade/esun_marketdata 2.2.0, Fubon fubon_neo 2.0.1)
+#      (E.SUN esun_trade/esun_marketdata 2.2.0, Fubon fubon_neo 2.2.8)
 #   4. Create venv, pip install everything (deps come from PyPI)
 #   5. Create the buysg command (user PATH); user data lives in
 #      %LOCALAPPDATA%\buysg\home (config auto-generated; put certificates there)
@@ -27,28 +27,36 @@ $Wheels = Join-Path $Root 'wheels'
 $RepoApi = 'https://api.github.com/repos/kyle2207/buysg-installer'
 
 # Broker SDK official download sources, keyed by wheel platform tag (consumed in
-# section 3). This is the Windows installer, so $Platform is fixed to win_amd64:
-# the brokers ship x64-only wheels, and ARM Windows runs them under emulation.
-# The catalog is keyed by platform purely to leave a clean seam -- a future
-# install.sh (or an OS branch here) adds mac/linux keys without touching the
-# download loop. Non-Windows keys are intentionally omitted until their exact
-# official URLs are pinned: E.SUN publishes all four platforms on its SDK download
-# page; Fubon 2.0.1 is win-only and would need a version bump (>=2.2.x) for mac/linux.
+# section 3). This is the Windows installer, so $Platform is fixed to win_amd64;
+# the catalog carries the three supported platforms so install.sh mirrors the exact
+# same pinned URLs (keep the two in sync). All URLs below verified live (HTTP 200).
+# Intel Mac (macosx_10_12) is intentionally excluded to match release_core.yml and
+# install.sh (core wheels built: win_amd64 / linux_x86_64 / macosx_arm64 only).
+#   E.SUN esun_trade/esun_marketdata 2.2.0 -- vendor ships win / linux / mac-arm / mac-intel
+#   Fubon fubon_neo 2.2.8 -- ships all four as .zip (each unpacks to one whl);
+#     bumped from 2.0.1 (win-only) so mac/linux are covered; 2.2.8 API verified
+#     compatible with the trader code.
 $Platform = 'win_amd64'
+
+$EsunBase  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages'
+$FubonBase = 'https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary'
 
 $SdkCatalog = @{
     'win_amd64' = @(
-        @{ Name = 'esun_trade-2.2.0-cp37-abi3-win_amd64.whl';
-           Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_trade-2.2.0-cp37-abi3-win_amd64.whl' },
-        @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl';
-           Url  = 'https://www.esunsec.com.tw/trading-platforms/api-trading/binary-packages/esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl' },
-        @{ Name = 'fubon_neo-2.0.1-cp37-abi3-win_amd64.zip';  # zip contains the whl
-           Url  = 'https://www.fbs.com.tw/TradeAPI_SDK/fubon_binary/fubon_neo-2.0.1-cp37-abi3-win_amd64.zip' }
+        @{ Name = 'esun_trade-2.2.0-cp37-abi3-win_amd64.whl';      Url = "$EsunBase/esun_trade-2.2.0-cp37-abi3-win_amd64.whl" },
+        @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl'; Url = "$EsunBase/esun_marketdata-2.2.0-cp37-abi3-win_amd64.whl" },
+        @{ Name = 'fubon_neo-2.2.8-cp37-abi3-win_amd64.zip';       Url = "$FubonBase/fubon_neo-2.2.8-cp37-abi3-win_amd64.zip" }
     )
-    # Future platform keys (pin exact official URLs before enabling; see notes above):
-    # 'manylinux_2_17_x86_64' = @( <esun_trade/esun_marketdata linux whls> + <fubon >=2.2.x> )
-    # 'macosx_11_0_arm64'     = @( <esun mac-arm whls> + <fubon mac-arm> )
-    # 'macosx_10_12_x86_64'   = @( <esun mac-intel whls> + <fubon mac-intel> )
+    'manylinux_2_17_x86_64' = @(
+        @{ Name = 'esun_trade-2.2.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl';      Url = "$EsunBase/esun_trade-2.2.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" },
+        @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl'; Url = "$EsunBase/esun_marketdata-2.2.0-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl" },
+        @{ Name = 'fubon_neo-2.2.8-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.zip';       Url = "$FubonBase/fubon_neo-2.2.8-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.zip" }
+    )
+    'macosx_11_0_arm64' = @(
+        @{ Name = 'esun_trade-2.2.0-cp37-abi3-macosx_11_0_arm64.whl';      Url = "$EsunBase/esun_trade-2.2.0-cp37-abi3-macosx_11_0_arm64.whl" },
+        @{ Name = 'esun_marketdata-2.2.0-cp37-abi3-macosx_11_0_arm64.whl'; Url = "$EsunBase/esun_marketdata-2.2.0-cp37-abi3-macosx_11_0_arm64.whl" },
+        @{ Name = 'fubon_neo-2.2.8-cp37-abi3-macosx_11_0_arm64.zip';       Url = "$FubonBase/fubon_neo-2.2.8-cp37-abi3-macosx_11_0_arm64.zip" }
+    )
 }
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
@@ -119,8 +127,10 @@ Write-Host "    Python: $(Invoke-Expression "$py --version")"
 # --- 2. core wheel from latest GitHub Release -----------------------------------
 Step "Fetching latest release info"
 $rel = Invoke-RestMethod "$RepoApi/releases/latest" -Headers @{ 'User-Agent' = 'buysg-installer' }
-$asset = $rel.assets | Where-Object { $_.name -like 'buysg-*.whl' } | Select-Object -First 1
-if (-not $asset) { Fail "no buysg wheel asset in latest release ($($rel.tag_name))" }
+# release now carries per-platform wheels (win/linux/mac) -- must filter by $Platform,
+# else Windows would grab the linux/mac wheel and pip would reject it (wrong platform).
+$asset = $rel.assets | Where-Object { $_.name -like 'buysg-*.whl' -and $_.name -like "*$Platform*" } | Select-Object -First 1
+if (-not $asset) { Fail "no buysg $Platform wheel in latest release ($($rel.tag_name))" }
 $CoreWhl = Join-Path $Wheels $asset.name
 if (-not (Test-Path $CoreWhl)) {
     Step "Downloading core: $($asset.name) ($([math]::Round($asset.size/1kb)) KB)"
@@ -145,6 +155,15 @@ foreach ($sdk in $SdkUrls) {
         Expand-Archive -Path $dst -DestinationPath $Wheels -Force
     }
 }
+# prune stale broker wheels from older versions (e.g. fubon 2.0.1 left in cache after a
+# bump to 2.2.8) so pip does not install a stale duplicate alongside the current one.
+# Each catalog entry's wheel name = its Name with any .zip suffix swapped to .whl.
+$ExpectedWhlNames = $SdkUrls | ForEach-Object { $_.Name -replace '\.zip$', '.whl' }
+Get-ChildItem (Join-Path $Wheels '*.whl') |
+    Where-Object { ($_.Name -like 'esun_*' -or $_.Name -like 'fubon_*') -and
+                   ($ExpectedWhlNames -notcontains $_.Name) } |
+    ForEach-Object { Write-Host "    removing stale SDK wheel: $($_.Name)"; Remove-Item $_.FullName -Force }
+
 # identify broker wheels explicitly (avoid picking up stale core wheels)
 $SdkWhls = Get-ChildItem (Join-Path $Wheels '*.whl') |
     Where-Object { $_.Name -like 'esun_*' -or $_.Name -like 'fubon_*' }
