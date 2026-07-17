@@ -87,10 +87,16 @@ curl -fsSL https://raw.githubusercontent.com/kyle2207/buysg-installer/main/insta
 
 | 指令 | 說明 |
 |---|---|
-| `buysg` | 互動選單（分類 / 價值 / 股價上限 / 帳戶勾選） |
-| `buysg doctor` | 環境健檢（設定 / 憑證 / SDK / 資料連線） |
+| `buysg` | 互動選單下單（分類 / 價值 / 股價上限 / 帳戶勾選；預設模式） |
+| `buysg login` | 登入 / 註冊零股悠帳號（Google / Facebook，2026 免費） |
+| `buysg preview` | 只看當期「確定有紀念品」清單（免登入券商） |
+| `buysg balance` | 只查各帳戶可用交割餘額 + 近日交割款，不下單 |
+| `buysg cancel` | 列出可取消的委託，選股票代號後刪單 |
+| `buysg accounts` | 設定預設啟用帳戶並寫回設定檔（免手改 config） |
+| `buysg doctor` | 環境健檢（設定 / 憑證 / 帳號 / 券商 SDK / 資料來源） |
 | `buysg update` | 更新到最新版 |
 | `buysg uninstall` | 完整移除（會提醒先備份憑證） |
+| `buysg help` | 顯示完整指令說明（等同 `--help`） |
 
 ## 資料夾結構
 
