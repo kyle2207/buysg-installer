@@ -1,0 +1,6 @@
+# Shell scripts are fetched and run via `curl -fsSL ... | bash`. They MUST stay LF:
+# a single CRLF corrupts the `#!/usr/bin/env bash` shebang and `set -euo pipefail`,
+# breaking install on macOS / Linux. Pin them so a Windows checkout or commit can
+# never silently rewrite them to CRLF.
+*.sh text eol=lf
+install.sh text eol=lf
