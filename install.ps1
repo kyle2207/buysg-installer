@@ -179,7 +179,23 @@ if (-not (Test-Path $VenvPy)) {
 }
 Step "Installing core + broker SDKs (deps auto-resolved from PyPI)"
 & $VenvPy -m pip install --upgrade pip --quiet
-foreach ($w in $SdkWhls) { & $VenvPy -m pip install $w.FullName --quiet }
+# 已安裝且同版本的券商 SDK 就跳過（update 時常見）——只裝缺的或版本不符的，
+# 免對已滿足的 SDK 重跑相依解析（比對不到版本則照舊安裝，安全降級）。
+$Frozen = @{}
+foreach ($line in (& $VenvPy -m pip freeze 2>$null)) {
+    $kv = $line -split '==', 2
+    if ($kv.Count -eq 2) { $Frozen[$kv[0].ToLower().Replace('_','-')] = $kv[1] }
+}
+foreach ($w in $SdkWhls) {
+    $parts = $w.Name -split '-'
+    $pkg = $parts[0].ToLower().Replace('_','-')
+    $ver = $parts[1]
+    if ($Frozen[$pkg] -eq $ver) {
+        Write-Host "    SDK already installed, skipping: $($w.Name)"
+    } else {
+        & $VenvPy -m pip install $w.FullName --quiet
+    }
+}
 & $VenvPy -m pip install $CoreWhl --force-reinstall --upgrade --quiet
 if (-not (Test-Path (Join-Path $Venv 'Scripts\buysg.exe'))) {
     Fail "buysg entry point was not created - pip install failed, see errors above."

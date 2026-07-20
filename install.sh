@@ -184,9 +184,19 @@ install_all() {
     fi
     step "Installing core + broker SDKs (deps auto-resolved from PyPI)"
     "$VENV_PY" -m pip install --upgrade pip --quiet
+    # 已安裝且同版本的券商 SDK 就跳過（update 時常見；比對不到則照舊安裝，安全降級）
+    local frozen; frozen="$("$VENV_PY" -m pip freeze 2>/dev/null || true)"
     for w in "$WHEELS"/esun_*.whl "$WHEELS"/fubon_*.whl; do
         [ -e "$w" ] || continue
-        "$VENV_PY" -m pip install "$w" --quiet
+        local base pkg rest ver
+        base="$(basename "$w")"
+        pkg="${base%%-*}"; rest="${base#*-}"; ver="${rest%%-*}"
+        pkg="$(printf '%s' "$pkg" | tr 'A-Z_' 'a-z-')"
+        if printf '%s\n' "$frozen" | grep -qiE "^${pkg}==${ver}$"; then
+            echo "    SDK already installed, skipping: $base"
+        else
+            "$VENV_PY" -m pip install "$w" --quiet
+        fi
     done
     "$VENV_PY" -m pip install "$CORE_WHL" --force-reinstall --upgrade --quiet
     [ -x "$VENV/bin/buysg" ] || fail "buysg entry point was not created -- pip install failed, see errors above."
