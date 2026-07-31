@@ -115,7 +115,7 @@ irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 
 
 | 指令 | 說明 |
 |---|---|
-| `buysg` | 互動選單下單（分類 / 價值 / 股價上限 / 帳戶勾選；預設模式） |
+| `buysg` | 互動選單下單（分類 / 價值 / 股價上限 / 帳戶勾選；任一題輸入 b 可回上一題） |
 | `buysg login` | 登入 / 註冊零股悠帳號（Google / Facebook，2026 免費） |
 | `buysg preview` | 只看當期「確定有紀念品」清單（免登入券商） |
 | `buysg balance` | 只查各帳戶可用交割餘額 + 近日交割款，不下單 |
@@ -136,7 +136,7 @@ irm https://raw.githubusercontent.com/kyle2207/buysg-installer/main/install.ps1 
 │   └── data\order_report.xlsx
 ├── venv\           ← 程式執行環境（更新時重建）
 ├── wheels\         ← 下載快取
-└── bin\buysg.cmd
+└── bin\            ← buysg 指令（buysg.ps1 + buysg.cmd）
 ```
 
 ## 疑難排解
